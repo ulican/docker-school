@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('🏗️ Build') {
+            steps {
+                script {
+                    echo "=== Starting Build Process ==="
+                    echo "Git triggered this pipeline! 🎉"
+                    
+                    echo "Current working directory:"
+                    sh 'pwd'
+                    
+                    echo "Files in repository:"
+                    sh 'ls -la'
+                    
+                    echo "App folder contents:"
+                    sh 'ls -la app/'
+                }
+            }
+        }
+    }
+}
