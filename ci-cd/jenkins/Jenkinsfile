@@ -5,17 +5,19 @@ pipeline {
         stage('🏗️ Build') {
             steps {
                 script {
-                    echo "=== Starting Build Process ==="
-                    echo "Git triggered this pipeline! 🎉"
+                    echo "=== Auto-triggered Jenkins Pipeline! ==="
+                    echo "Git repository mounted successfully! 🎉"
                     
-                    echo "Current working directory:"
+                    echo "Working directory:"
                     sh 'pwd'
                     
-                    echo "Files in repository:"
+                    echo "Available files in repository:"
                     sh 'ls -la'
                     
-                    echo "App folder contents:"
+                    echo "App folder contents (ready for Docker build):"
                     sh 'ls -la app/'
+                    
+                    echo "✅ Repository access confirmed!"
                 }
             }
         }
