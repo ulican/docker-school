@@ -1,0 +1,41 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🔨 Build SOD Static",
+            "type": "shell",
+            "command": "cd app && docker build -t sod-static:latest .",
+            "group": "build"
+        },
+        {
+            "label": "🚀 Run SOD Container",
+            "type": "shell", 
+            "command": "docker run -d --name sod-app -p 8080:80 sod-static:latest",
+            "group": "test"
+        },
+        {
+            "label": "🐳 Start Full Stack",
+            "type": "shell",
+            "command": "docker-compose up -d",
+            "group": "test"
+        },
+        {
+            "label": "🧪 Run Tests",
+            "type": "shell",
+            "command": "./tests/test-website.sh",
+            "group": "test"
+        },
+        {
+            "label": "🧹 Clean Containers",
+            "type": "shell",
+            "command": "docker stop sod-app nginx-proxy || true && docker rm sod-app nginx-proxy || true",
+            "group": "build"
+        },
+        {
+            "label": "📊 Check Website Status",
+            "type": "shell",
+            "command": "curl -s -o /dev/null -w 'Status: %{http_code}\\nTime: %{time_total}s\\n' http://localhost:8080",
+            "group": "test"
+        }
+    ]
+}

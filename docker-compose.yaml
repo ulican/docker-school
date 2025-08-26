@@ -1,0 +1,19 @@
+services:
+  app:
+    image: sod-static
+    container_name: sod-app
+    networks: [proxy-net]
+    environment:
+      - VIRTUAL_HOST=www.schoolofdevops.ro
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    container_name: nginx-proxy
+    ports:
+      - "8081:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks: [proxy-net]
+
+networks:
+  proxy-net:

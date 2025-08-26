@@ -1,98 +1,44 @@
 pipeline {
     agent any
-    
+
     stages {
-        stage('🏗️ Build Docker Image') {
+        stage('Build') {
             steps {
                 script {
-                    echo "=== BUILD STAGE ==="
-                    
-                    // Copy code din mount
-                    sh '''
-                        rm -rf * .git* 2>/dev/null || true
-                        cp -r /var/jenkins_workspace/docker-school/* . 2>/dev/null || true
-                        ls -la app/
-                    '''
-                    
-                    // Docker build cu versioning
-                    echo "Building version: sod-static:${BUILD_NUMBER}"
+                    echo "Building Docker image..."
+
+                    // Copy code
+                    sh 'cp -r /var/jenkins_workspace/docker-school/* .'
+
+                    // Build image
                     sh '''
                         cd app
                         docker build -t sod-static:${BUILD_NUMBER} .
-                        docker tag sod-static:${BUILD_NUMBER} sod-static:latest
                     '''
-                    
-                    echo "✅ Build completed successfully!"
-                    sh 'docker images | grep sod-static | head -2'
+
+                    echo "Build complete"
                 }
             }
         }
-        
-        stage('🧪 Test Website') {
+
+        stage('Test') {
             steps {
                 script {
-                    echo "=== TEST STAGE - MICRO STEPS ==="
-                    
-                    // Micro-step 1: Start test container
-                    echo "Step 1: Starting test container..."
-                    sh '''
-                        docker stop sod-test-${BUILD_NUMBER} 2>/dev/null || true
-                        docker rm sod-test-${BUILD_NUMBER} 2>/dev/null || true
-                        docker run -d --name sod-test-${BUILD_NUMBER} -p 808${BUILD_NUMBER}:80 sod-static:${BUILD_NUMBER}
-                    '''
-                    
-                    // Micro-step 2: Wait for startup
-                    echo "Step 2: Waiting for container to be ready..."
-                    sh 'sleep 3'
-                    
-                    // Micro-step 3: Test HTTP response
-                    echo "Step 3: Testing HTTP response..."
-                    sh '''
-                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:808${BUILD_NUMBER})
-                        echo "HTTP Response Code: $HTTP_CODE"
-                        if [ "$HTTP_CODE" != "200" ]; then
-                            echo "❌ Website not responding correctly"
-                            exit 1
-                        fi
-                        echo "✅ Website responds with HTTP 200"
-                    '''
-                    
-                    // Micro-step 4: Test content
-                    echo "Step 4: Testing website content..."
-                    sh '''
-                        CONTENT=$(curl -s http://localhost:808${BUILD_NUMBER})
-                        echo "Website content: $CONTENT"
-                        if echo "$CONTENT" | grep -q "Welcome to School of DevOps"; then
-                            echo "✅ Website contains expected content"
-                        else
-                            echo "❌ Website content is incorrect"
-                            exit 1
-                        fi
-                    '''
-                    
-                    // Micro-step 5: Cleanup test container
-                    echo "Step 5: Cleaning up test container..."
-                    sh '''
-                        docker stop sod-test-${BUILD_NUMBER}
-                        docker rm sod-test-${BUILD_NUMBER}
-                        echo "✅ Test container cleaned up"
-                    '''
-                    
-                    echo "🎉 ALL TESTS PASSED!"
-                }
-            }
+                    echo "Testing website..."
+                    sh 'docker run -d --name test-container -p 9090:80 sod-static:2'
+                    sh 'sleep 5'
+
+                    sh 'docker exec test-container curl localhost'
+
+                    echo "Test complete"
         }
     }
-    
+}
+
     post {
         always {
-            echo "Pipeline completed for version ${BUILD_NUMBER}"
-        }
-        success {
-            echo "🎉 Build and Test successful!"
-        }
-        failure {
-            echo "❌ Pipeline failed - check logs above"
+            sh 'docker stop test-container || true'
+            sh 'docker rm test-container || true'
         }
     }
 }

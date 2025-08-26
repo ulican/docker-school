@@ -1,0 +1,16 @@
+{
+    "editor.formatOnSave": true,
+    "files.associations": {
+        "Jenkinsfile": "groovy",
+        "*.yml": "yaml",
+        "*.yaml": "yaml"
+    },
+    "yaml.schemas": {
+        "https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/master/service-schema.json": [
+            "**/azure-pipelines.yml"
+        ],
+        "https://json.schemastore.org/github-workflow.json": [
+            "**/.github/workflows/*.yml"
+        ]
+    }
+}

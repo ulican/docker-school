@@ -2,20 +2,49 @@ name: School of DevOps CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Test repository structure
-      run: |
-        echo "Repository contents:"
-        ls -la
-        echo "App folder:"
-        ls -la app/
-        echo "GitHub Actions workflow detected!"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          cd app
+          docker build -t sod-static:${{ github.sha }} .
+          echo "Build completed: sod-static:${{ github.sha }}"
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image (for testing)
+        run: |
+          cd app
+          docker build -t sod-static:${{ github.sha }} .
+
+      - name: Test Docker container
+        run: |
+          echo "Testing website..."
+          docker run -d --name test-container -p 9090:80 sod-static:${{ github.sha }}
+          sleep 5
+          docker exec test-container curl localhost
+          docker stop test-container && docker rm test-container
+          echo "Tests passed"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment"
+          echo "Image: sod-static:${{ github.sha }}"
+          echo "Deploy completed"
