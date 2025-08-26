@@ -68,3 +68,4 @@ jobs:
             Repository: ${{ github.repository }}
             Commit: ${{ github.sha }}
           to: alexulican1234@gmail.com
+          from: ${{ secrets.EMAIL_USERNAME }}
