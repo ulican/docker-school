@@ -1,0 +1,21 @@
+name: School of DevOps CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Test repository structure
+      run: |
+        echo "Repository contents:"
+        ls -la
+        echo "App folder:"
+        ls -la app/
+        echo "GitHub Actions workflow detected!"
