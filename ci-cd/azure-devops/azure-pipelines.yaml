@@ -1,0 +1,60 @@
+# azure-pipelines.yml
+
+trigger:
+  - main
+
+pool:
+  vmImage: "ubuntu-latest"
+
+variables:
+  appName: "sod-static"
+  servicePort: "9090"
+  imageTag: "$(Build.BuildNumber)"
+
+stages:
+  - stage: Build
+    displayName: "Build"
+    jobs:
+      - job: Build
+        steps:
+          - checkout: self
+          - script: |
+              echo "==> Build Docker image"
+              cd app
+              docker build -t $(appName):$(imageTag) .
+              echo "==> Images:"
+              docker images | grep $(appName) || true
+            displayName: "Docker build"
+
+  - stage: Test
+    displayName: "Test"
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: Test
+        steps:
+          - script: |
+              echo "==> Run container"
+              docker run -d --name test -p $(servicePort):80 $(appName):$(imageTag)
+              sleep 5
+              echo "==> Smoke test"
+              curl -I http://localhost:$(servicePort)
+            displayName: "Smoke test"
+          - script: |
+              echo "==> Cleanup"
+              docker logs test || true
+              docker rm -f test || true
+            condition: always()
+
+      - stage: Deploy
+        dependsOn: Test
+        jobs:
+          - job: Deploy
+            steps:
+              - task: Docker@2
+                displayName: Push image to ACR
+                inputs:
+                  command: push
+                  containerRegistry: "AzureConnection"
+                  repository: "sod-static"
+                  tags: "$(Build.BuildNumber)"
