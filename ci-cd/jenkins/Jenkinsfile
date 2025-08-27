@@ -7,10 +7,8 @@ pipeline {
                 script {
                     echo "Building Docker image..."
 
-                    // Copy code
                     sh 'cp -r /var/jenkins_workspace/docker-school/* .'
 
-                    // Build image
                     sh '''
                         cd app
                         docker build -t sod-static:${BUILD_NUMBER} .
@@ -41,4 +39,4 @@ pipeline {
             sh 'docker rm test-container || true'
         }
     }
-}
+}}
