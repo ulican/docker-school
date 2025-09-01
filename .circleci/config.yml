@@ -89,6 +89,12 @@ jobs:
             echo "Commit: $CIRCLE_SHA1"
             echo "Branch: $CIRCLE_BRANCH"
 
+            # Aici poți adăuga logica pentru email/Slack/etc.
+            # Exemplu cu curl pentru Slack webhook:
+            # curl -X POST -H 'Content-type: application/json' \
+            #   --data '{"text":"Pipeline completed for '$CIRCLE_PROJECT_REPONAME'"}' \
+            #   $SLACK_WEBHOOK_URL
+
 # Workflows - orchestrează job-urile
 workflows:
   version: 2
@@ -118,4 +124,3 @@ workflows:
           filters:
             branches:
               only: main
-          when: always
