@@ -1,0 +1,121 @@
+version: 2.1
+
+# Executors - definesc mediul de rulare
+executors:
+  docker-executor:
+    docker:
+      - image: cimg/base:stable
+    working_directory: ~/project
+
+# Jobs - unitățile de lucru
+jobs:
+  build:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - run:
+          name: Build Docker image
+          command: |
+            echo "Building Docker image..."
+            cd app
+            docker build -t sod-static:$CIRCLE_SHA1 .
+            echo "Build completed: sod-static:$CIRCLE_SHA1"
+      - run:
+          name: Save Docker image
+          command: |
+            mkdir -p /tmp/workspace
+            docker save sod-static:$CIRCLE_SHA1 -o /tmp/workspace/image.tar
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - image.tar
+
+  test:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Load Docker image
+          command: |
+            docker load -i /tmp/workspace/image.tar
+      - run:
+          name: Test Docker container
+          command: |
+            echo "Testing website..."
+            docker run -d --name test-container -p 9090:80 sod-static:$CIRCLE_SHA1
+            sleep 10
+
+            # Verifică dacă containerul rulează
+            docker ps | grep test-container
+
+            # Test basic HTTP
+            docker exec test-container curl -f localhost || exit 1
+
+            echo "Tests passed"
+      - run:
+          name: Cleanup test container
+          command: |
+            docker stop test-container || true
+            docker rm test-container || true
+          when: always
+
+  deploy:
+    executor: docker-executor
+    steps:
+      - run:
+          name: Deploy to staging
+          command: |
+            echo "Deploying to staging environment"
+            echo "Image: sod-static:$CIRCLE_SHA1"
+            echo "Branch: $CIRCLE_BRANCH"
+            echo "Build number: $CIRCLE_BUILD_NUM"
+            echo "Deploy completed"
+
+  notify:
+    executor: docker-executor
+    steps:
+      - run:
+          name: Send notification
+          command: |
+            echo "Pipeline completed!"
+            echo "Status: Success"
+            echo "Repository: $CIRCLE_PROJECT_REPONAME"
+            echo "Commit: $CIRCLE_SHA1"
+            echo "Branch: $CIRCLE_BRANCH"
+
+# Workflows - orchestrează job-urile
+workflows:
+  version: 2
+  build-test-deploy:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: main
+      - test:
+          requires:
+            - build
+          filters:
+            branches:
+              only: main
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only: main
+      - notify:
+          requires:
+            - build
+            - test
+            - deploy
+          filters:
+            branches:
+              only: main
+          when: always
