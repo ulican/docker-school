@@ -1,32 +1,34 @@
 version: 2.1
 
-# Executors - definesc mediul de rulare
+# Executors define reusable execution environments
+# Docker executor chosen for speed and resource efficiency over machine/VM
 executors:
   docker-executor:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/base:stable # CircleCI optimized image with Docker, Git, common tools
     working_directory: ~/project
 
-# Jobs - unitățile de lucru
 jobs:
   build:
     executor: docker-executor
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker # Enables Docker daemon access without version lock-in
       - run:
           name: Build Docker image
           command: |
             echo "Building Docker image..."
             cd app
+            # Using commit SHA for immutable image tagging - enables rollback & traceability
             docker build -t sod-static:$CIRCLE_SHA1 .
             echo "Build completed: sod-static:$CIRCLE_SHA1"
       - run:
           name: Save Docker image
           command: |
             mkdir -p /tmp/workspace
+            # Serialize image to avoid rebuilding in downstream jobs - saves time & compute
             docker save sod-static:$CIRCLE_SHA1 -o /tmp/workspace/image.tar
-      - persist_to_workspace:
+      - persist_to_workspace: # Share artifacts between jobs - alternative to registry push
           root: /tmp/workspace
           paths:
             - image.tar
@@ -36,7 +38,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - attach_workspace:
+      - attach_workspace: # Retrieve build artifacts from previous job
           at: /tmp/workspace
       - run:
           name: Load Docker image
@@ -46,13 +48,12 @@ jobs:
           name: Test Docker container
           command: |
             echo "Testing website..."
+            # Black-box integration test - verify service runs as expected in production-like env
             docker run -d --name test-container -p 9090:80 sod-static:$CIRCLE_SHA1
-            sleep 10
+            sleep 10  # Allow service startup time
 
-            # Verifică dacă containerul rulează
+            # Health checks - fail fast if service isn't responsive
             docker ps | grep test-container
-
-            # Test basic HTTP
             docker exec test-container curl -f localhost || exit 1
 
             echo "Tests passed"
@@ -61,7 +62,7 @@ jobs:
           command: |
             docker stop test-container || true
             docker rm test-container || true
-          when: always
+          when: always # Prevent resource leaks even on job failure
 
   deploy:
     executor: docker-executor
@@ -70,10 +71,12 @@ jobs:
           name: Deploy to staging
           command: |
             echo "Deploying to staging environment"
+            # Environment variables provide deployment traceability & audit trail
             echo "Image: sod-static:$CIRCLE_SHA1"
             echo "Branch: $CIRCLE_BRANCH"
             echo "Build number: $CIRCLE_BUILD_NUM"
             echo "Deploy completed"
+            # Production: Replace with actual deployment commands (kubectl, terraform, etc.)
 
   notify:
     executor: docker-executor
@@ -87,30 +90,29 @@ jobs:
             echo "Commit: $CIRCLE_SHA1"
             echo "Branch: $CIRCLE_BRANCH"
 
-            # Aici poți adăuga logica pentru email/Slack/etc.
-            # Exemplu cu curl pentru Slack webhook:
+            # Production: Integrate with Slack, email, or monitoring systems
             # curl -X POST -H 'Content-type: application/json' \
             #   --data '{"text":"Pipeline completed for '$CIRCLE_PROJECT_REPONAME'"}' \
             #   $SLACK_WEBHOOK_URL
 
-# Workflows - orchestrează job-urile
+# Workflows orchestrate job execution with dependency management
 workflows:
   version: 2
-  build-test-deploy:
+  build-test-deploy: # Sequential pipeline with quality gates
     jobs:
       - build:
           filters:
             branches:
-              only: main
+              only: main # Production deployments only from main branch
       - test:
           requires:
-            - build
+            - build # Test phase depends on successful build
           filters:
             branches:
               only: main
       - deploy:
           requires:
-            - test
+            - test # Deploy only if tests pass - fail-fast principle
           filters:
             branches:
               only: main
@@ -118,7 +120,7 @@ workflows:
           requires:
             - build
             - test
-            - deploy
+            - deploy # Notification runs after all core jobs complete
           filters:
             branches:
               only: main
