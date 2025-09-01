@@ -46,15 +46,16 @@ stages:
               docker rm -f test || true
             condition: always()
 
-      - stage: Deploy
-        dependsOn: Test
-        jobs:
-          - job: Deploy
-            steps:
-              - task: Docker@2
-                displayName: Push image to ACR
-                inputs:
-                  command: push
-                  containerRegistry: "AzureConnection"
-                  repository: "sod-static"
-                  tags: "$(Build.BuildNumber)"
+  - stage: Deploy
+    displayName: "Deploy"
+    dependsOn: Test
+    jobs:
+      - job: Deploy
+        steps:
+          - task: Docker@2
+            displayName: "Push image to ACR"
+            inputs:
+              command: push
+              containerRegistry: "AzureConnection"
+              repository: "sod-static"
+              tags: "$(Build.BuildNumber)"
