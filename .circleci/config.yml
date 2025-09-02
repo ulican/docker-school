@@ -1,11 +1,11 @@
 version: 2.1
 
 # Executors define reusable execution environments
-# Docker executor chosen for speed and resource efficiency over machine/VM
+# Node executor for Railway CLI deployment
 executors:
   docker-executor:
     docker:
-      - image: cimg/base:stable # CircleCI optimized image with Docker, Git, common tools
+      - image: cimg/node:18.20 # Node.js image with npm for Railway CLI
     working_directory: ~/project
 
 jobs:
