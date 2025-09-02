@@ -1,11 +1,11 @@
 version: 2.1
 
 # Executors define reusable execution environments
-# Node executor for Railway CLI deployment
+# Node executor provides Docker + npm for tooling flexibility
 executors:
   docker-executor:
     docker:
-      - image: cimg/node:18.20 # Node.js image with npm for Railway CLI
+      - image: cimg/node:18.20
     working_directory: ~/project
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
     executor: docker-executor
     steps:
       - checkout
-      - setup_remote_docker # Enables Docker daemon access without version lock-in
+      - setup_remote_docker
       - run:
           name: Build Docker image
           command: |
@@ -27,7 +27,7 @@ jobs:
             mkdir -p /tmp/workspace
             # Serialize image to avoid rebuilding in downstream jobs - saves time & compute
             docker save sod-static:$CIRCLE_SHA1 -o /tmp/workspace/image.tar
-      - persist_to_workspace: # Share artifacts between jobs - alternative to registry push
+      - persist_to_workspace:
           root: /tmp/workspace
           paths:
             - image.tar
@@ -37,7 +37,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - attach_workspace: # Retrieve build artifacts from previous job
+      - attach_workspace:
           at: /tmp/workspace
       - run:
           name: Load Docker image
@@ -49,7 +49,7 @@ jobs:
             echo "Testing website..."
             # Black-box integration test - verify service runs as expected in production-like env
             docker run -d --name test-container -p 9090:80 sod-static:$CIRCLE_SHA1
-            sleep 10  # Allow service startup time
+            sleep 10
 
             # Health checks - fail fast if service isn't responsive
             docker ps | grep test-container
@@ -61,29 +61,24 @@ jobs:
           command: |
             docker stop test-container || true
             docker rm test-container || true
-          when: always # Prevent resource leaks even on job failure
+          when: always
 
   deploy:
     executor: docker-executor
     steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - setup_remote_docker
       - run:
-          name: Load and tag Docker image
+          name: Deploy to staging
           command: |
-            docker load -i /tmp/workspace/image.tar
-            docker tag sod-static:$CIRCLE_SHA1 sod-static:latest
-      - run:
-          name: Deploy simulation
-          command: |
-            echo "Deploying to production environment"
+            echo "Deploying to staging environment"
             echo "Image: sod-static:$CIRCLE_SHA1"
             echo "Branch: $CIRCLE_BRANCH"
             echo "Build number: $CIRCLE_BUILD_NUM"
-            echo "Deployment URL: https://docker-school-production.railway.app"
-            echo "Deploy completed successfully!"
-            # In production: would push to registry and trigger actual deployment
+            echo "Deploy completed"
+            # Production: Replace with actual deployment commands
+            # Examples:
+            # - kubectl set image deployment/app container=sod-static:$CIRCLE_SHA1
+            # - docker push $REGISTRY/sod-static:$CIRCLE_SHA1
+            # - terraform apply -var="image_tag=$CIRCLE_SHA1"
 
   notify:
     executor: docker-executor
@@ -97,29 +92,33 @@ jobs:
             echo "Commit: $CIRCLE_SHA1"
             echo "Branch: $CIRCLE_BRANCH"
 
-            # Production: Integrate with Slack, email, or monitoring systems
+            # Production: Integrate with notification systems
+            # Examples:
+            # - Slack webhook for team notifications
+            # - Email alerts for deployment status
+            # - Monitoring system integration
             # curl -X POST -H 'Content-type: application/json' \
-            #   --data '{"text":"Pipeline completed for '$CIRCLE_PROJECT_REPONAME'"}' \
+            #   --data '{"text":"Deployment completed for '$CIRCLE_PROJECT_REPONAME'"}' \
             #   $SLACK_WEBHOOK_URL
 
 # Workflows orchestrate job execution with dependency management
 workflows:
   version: 2
-  build-test-deploy: # Sequential pipeline with quality gates
+  build-test-deploy:
     jobs:
       - build:
           filters:
             branches:
-              only: main # Production deployments only from main branch
+              only: main
       - test:
           requires:
-            - build # Test phase depends on successful build
+            - build
           filters:
             branches:
               only: main
       - deploy:
           requires:
-            - test # Deploy only if tests pass - fail-fast principle
+            - test
           filters:
             branches:
               only: main
@@ -127,7 +126,7 @@ workflows:
           requires:
             - build
             - test
-            - deploy # Notification runs after all core jobs complete
+            - deploy
           filters:
             branches:
               only: main
