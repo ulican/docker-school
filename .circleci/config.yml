@@ -18,7 +18,6 @@ jobs:
           name: Build Docker image
           command: |
             echo "Building Docker image..."
-            cd app
             # Using commit SHA for immutable image tagging - enables rollback & traceability
             docker build -t sod-static:$CIRCLE_SHA1 .
             echo "Build completed: sod-static:$CIRCLE_SHA1"
@@ -67,16 +66,28 @@ jobs:
   deploy:
     executor: docker-executor
     steps:
+      - attach_workspace:
+          at: /tmp/workspace
       - run:
-          name: Deploy to staging
+          name: Install Railway CLI
           command: |
-            echo "Deploying to staging environment"
-            # Environment variables provide deployment traceability & audit trail
+            npm install -g @railway/cli
+      - run:
+          name: Deploy to Railway
+          command: |
+            echo "Deploying to Railway..."
+            docker load -i /tmp/workspace/image.tar
+
+            # Tag pentru Railway
+            docker tag sod-static:$CIRCLE_SHA1 sod-static:latest
+
+            # Deploy cu Railway CLI
+            railway login --token $RAILWAY_TOKEN
+            railway deploy --dockerfile --service sod-static
+
+            echo "Deploy completed!"
             echo "Image: sod-static:$CIRCLE_SHA1"
             echo "Branch: $CIRCLE_BRANCH"
-            echo "Build number: $CIRCLE_BUILD_NUM"
-            echo "Deploy completed"
-            # Production: Replace with actual deployment commands (kubectl, terraform, etc.)
 
   notify:
     executor: docker-executor
