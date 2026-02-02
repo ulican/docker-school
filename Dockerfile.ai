@@ -1,0 +1,23 @@
+# Since the language and version are unknown, using a generic base image
+FROM alpine:latest
+
+# Create a non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the application files
+COPY . .
+
+# Set the user to the non-root user
+USER appuser
+
+# Expose a default port (e.g., 8080)
+EXPOSE 8080
+
+# Define a health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl -f http://localhost:8080/ || exit 1
+
+# Start the application (command needs to be specified)
+CMD ["sh", "-c", "echo 'Specify the start command in the Dockerfile'"]
