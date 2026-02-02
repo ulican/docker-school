@@ -1,0 +1,12 @@
+# Placeholder Dockerfile since tech stack is unknown
+FROM alpine:latest
+
+# Add your application setup here
+
+# Example:
+# COPY . /app
+# WORKDIR /app
+# RUN apk add --no-cache nodejs npm
+# RUN npm install
+
+CMD ["echo", "Hello World"]
