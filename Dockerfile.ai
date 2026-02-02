@@ -1,0 +1,26 @@
+# Since the language and version are unknown, we will use a generic base image
+FROM alpine:latest
+
+# Create a non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the application files
+COPY . .
+
+# Change ownership to the non-root user
+RUN chown -R appuser:appgroup /app
+
+# Switch to the non-root user
+USER appuser
+
+# Specify the command to run the application
+CMD ["sh"]
+
+# Expose a default port (change as necessary)
+EXPOSE 8080
+
+# Add a basic healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD echo 'Healthcheck not implemented' || exit 1
