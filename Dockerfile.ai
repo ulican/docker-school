@@ -1,0 +1,20 @@
+# No specific language or version detected, using a generic base image
+FROM alpine:latest
+
+# Create a non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set working directory
+WORKDIR /app
+
+# Copy source code
+COPY . .
+
+# Switch to non-root user
+USER appuser
+
+# Expose a default port
+EXPOSE 8080
+
+# Default command (to be adjusted based on actual application)
+CMD ["sh"]
