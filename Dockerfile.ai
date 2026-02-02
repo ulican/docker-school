@@ -1,0 +1,23 @@
+# Since the tech stack is unknown, using a generic base image
+FROM alpine:latest
+
+# Create a user to run the application
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the application files
+COPY . .
+
+# Ensure the application runs as the non-root user
+USER appuser
+
+# Placeholder for application start command
+CMD ["sh"]
+
+# Healthcheck placeholder
+HEALTHCHECK CMD echo 'No healthcheck defined'
+
+# Expose a default port
+EXPOSE 8080
