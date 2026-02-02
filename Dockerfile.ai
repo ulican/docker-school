@@ -1,0 +1,24 @@
+# Since the language and version are unknown, using a generic base image
+FROM alpine:latest
+
+# Create a user to avoid running as root
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the application files
+COPY . .
+
+# Set the user to use when running this image
+USER appuser
+
+# Expose a default port (this should be adjusted based on the actual application)
+EXPOSE 8080
+
+# Define the command to run the application
+CMD ["sh"]
+
+# Healthcheck to ensure the service is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1
