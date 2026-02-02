@@ -1,0 +1,30 @@
+# Since the language and version are unknown, using a generic base image
+FROM alpine:latest
+
+# Create a non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set working directory
+WORKDIR /app
+
+# Copy application files
+COPY . .
+
+# Change ownership to non-root user
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Placeholder for install and build commands
+# RUN <install-command>
+# RUN <build-command>
+
+# Placeholder for application start command
+# CMD ["<start-command>"]
+
+# Expose a default port
+EXPOSE 3000
+
+# Healthcheck placeholder
+# HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl -f http://localhost:3000/ || exit 1
